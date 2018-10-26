@@ -1,0 +1,59 @@
+---
+- name: Setup Development Environment
+  hosts: all
+
+  vars:
+    homebrew_cask_apps:
+      - docker
+
+  vars_files:
+    - vars/vars.yml
+
+  tasks:
+    - name: Create media services docker directory
+      become: true
+      become_user: '{{ ansible_user_id }}'
+      file:
+        path: ~/media
+        state: directory
+        mode: 0775
+
+    - name: Writing media services docker configuration
+      become: yes
+      become_user: '{{ ansible_user_id }}'
+      template: >
+        src=templates/media/docker-compose.yml.j2
+        dest=~/media/docker-compose.yml
+        mode=0755
+
+    - name: Writing nginx reverse proxy configuration
+      become: yes
+      become_user: '{{ ansible_user_id }}'
+      template: >
+        src=templates/media/nginx.conf.j2
+        dest=~/media/nginx.conf
+        mode=0755
+
+    - name: Create nginx logs directory
+      become: true
+      become_user: '{{ ansible_user_id }}'
+      file:
+        path: ~/media/logs
+        state: directory
+        mode: 0775
+
+    - name: Remove Docker from MacOS Quarrantine
+      command: xattr -d -r com.apple.quarantine /Applications/Docker.app
+
+    - name: Install Docker Networking Components
+      become: true
+      command: /Applications/Docker.app/Contents/MacOS/Docker --quit-after-install --unattended
+
+    - name: Complete Docker Setup
+      command: /Applications/Docker.app/Contents/MacOS/Docker --quit-after-install --unattended
+
+    - name: Launch Docker
+      command: open --background -a Docker
+
+  roles:
+    - geerlingguy.homebrew

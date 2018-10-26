@@ -1,0 +1,5 @@
+home:
+  hosts:
+    home.baltimore
+  vars:
+    ansible_user: admin
