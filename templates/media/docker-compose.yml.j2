@@ -90,51 +90,101 @@ services:
     restart: always
     networks:
       - media
+    ports:
+      - '80:80'
+      - '443:443'
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf
       - ./logs:/var/container-log
       # - ./lets-encrypt-data/:/etc/letsencrypt/
+
+  plex:
+    image: plexinc/pms-docker:plexpass
+    container_name: plex
+    restart: always
+    networks:
+      - media
     ports:
-      - '80:80'
-      - '443:443'
+      - '32400:32400/tcp'
+      - '3005:3005/tcp'
+      - '8324:8324/tcp'
+      - '32469:32469/tcp'
+      - '1900:1900/udp'
+      - '32410:32410/udp'
+      - '32412:32412/udp'
+      - '32413:32413/udp'
+      - '32414:32414/udp'
+    hostname: plex
+    environment:
+      - TZ=America/New_York
+      - PUID=1000
+      - PGID=1000
+      - PLEX_CLAIM="{{ plex_claim_token }}"
+      - ADVERTISE_IP=http://{{ media_host_ip }}:32400/
+      - CHANGE_CONFIG_DIR_OWNERSHIP=false
+      - ALLOWED_NETWORKS={{ media_host_subnet }}
+    volumes:
+      - ./transcode:/transcode
+      - type: volume
+        source: config_plex
+        target: /config
+        volume:
+          nocopy: true
+      - type: volume
+        source: media_cifs
+        target: /data
+        volume:
+          nocopy: true
 
 volumes:
   config_sonarr:
     driver: local
     driver_opts:
       type: nfs
-      o: addr=diskstation1.baltimore,nolock,soft,rw
+      o: addr={{ nas_host }},nolock,soft,rw
       device: ":/volume1/config/sonarr"
   config_radarr:
     driver: local
     driver_opts:
       type: nfs
-      o: addr=diskstation1.baltimore,nolock,soft,rw
+      o: addr={{ nas_host }},nolock,soft,rw
       device: ":/volume1/config/radarr"
   config_nzbget:
     driver: local
     driver_opts:
       type: nfs
-      o: addr=diskstation1.baltimore,nolock,soft,rw
+      o: addr={{ nas_host }},nolock,soft,rw
       device: ":/volume1/config/nzbget"
+  config_plex:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr={{ nas_host }},nolock,soft,rw
+      device: ":/volume1/config/plex"
   downloads:
     driver: local
     driver_opts:
       type: nfs
-      o: addr=diskstation1.baltimore,nolock,soft,rw
+      o: addr={{ nas_host }},nolock,soft,rw
       device: ":/volume1/downloads"
   media_movies:
     driver: local
     driver_opts:
       type: nfs
-      o: addr=diskstation1.baltimore,nolock,soft,rw
+      o: addr={{ nas_host }},nolock,soft,rw
       device: ":/volume1/Media/Movies"
   media_tv:
     driver: local
     driver_opts:
       type: nfs
-      o: addr=diskstation1.baltimore,nolock,soft,rw
+      o: addr={{ nas_host }},nolock,soft,rw
       device: ":/volume1/Media/TV Shows"
+  media_cifs:
+    driver: local
+    driver_opts:
+      type: cifs
+      o: vers=2.0,mfsymlinks,username={{ nas_user }},password={{ nas_password }}
+      device: "//{{ nas_host_ip }}/Media"
 
 networks:
   media:

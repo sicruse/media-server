@@ -42,6 +42,14 @@
         state: directory
         mode: 0775
 
+    - name: Create plex transcode directory
+      become: true
+      become_user: '{{ ansible_user_id }}'
+      file:
+        path: ~/media/transcode
+        state: directory
+        mode: 0775
+
     - name: Remove Docker from MacOS Quarrantine
       command: xattr -d -r com.apple.quarantine /Applications/Docker.app
 
