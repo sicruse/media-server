@@ -27,7 +27,7 @@ http {
         listen       80;
         server_name  sonarr.{{ ansible_host }};
         access_log   /var/container-log/sonarr.access.log  main;
-        error_log   /var/container-log/sonarr.error.log  debug;
+        error_log    /var/container-log/sonarr.error.log  debug;
 
         # location /.well-known/ {
         #     root /webroots/sonarr.whitey.baltimore/;
@@ -56,7 +56,7 @@ http {
         listen       80;
         server_name  radarr.{{ ansible_host }};
         access_log   /var/container-log/radarr.access.log  main;
-        error_log   /var/container-log/radarr.error.log  debug;
+        error_log    /var/container-log/radarr.error.log  debug;
 
         location / {
             proxy_pass        http://radarr:7878/;
@@ -74,9 +74,29 @@ http {
 
     server {
         listen       80;
+        server_name  jackett.{{ ansible_host }};
+        access_log   /var/container-log/jackett.access.log  main;
+        error_log    /var/container-log/jackett.error.log  debug;
+
+        location / {
+            proxy_pass        http://jackett:9117/;
+            proxy_set_header  X-Real-IP         $remote_addr;
+            proxy_set_header  Host              $host;
+            proxy_set_header  X-Forwarded-For   $proxy_add_x_forwarded_for;
+            proxy_set_header  X-Forwarded-Proto $scheme;
+            proxy_redirect    off;
+            proxy_buffering   off;
+
+            proxy_connect_timeout 240s;
+            proxy_read_timeout 240s;
+        }
+    }
+
+    server {
+        listen       80;
         server_name  nzbget.{{ ansible_host }};
         access_log   /var/container-log/nzbget.access.log  main;
-        error_log   /var/container-log/nzbget.error.log  debug;
+        error_log    /var/container-log/nzbget.error.log  debug;
 
         # location /.well-known/ {
         #     root /webroots/sabnzbd.{{ ansible_host }}/;
@@ -86,4 +106,27 @@ http {
           proxy_pass      http://vpn:6789/;
         }
     }
+
+    server {
+        listen       80;
+        server_name  deluge.{{ ansible_host }};
+        access_log   /var/container-log/deluge.access.log  main;
+        error_log    /var/container-log/deluge.error.log  debug;
+
+        location / {
+          proxy_pass        http://vpn:8112/;
+          proxy_set_header  X-Deluge-Base "/";
+          # include           proxy-control.conf;
+          add_header        X-Frame-Options SAMEORIGIN;
+
+          proxy_set_header  X-Real-IP         $remote_addr;
+          proxy_set_header  Host              $host;
+          proxy_set_header  X-Forwarded-For   $proxy_add_x_forwarded_for;
+          proxy_set_header  X-Forwarded-Proto $scheme;
+          proxy_redirect    off;
+          proxy_buffering   off;
+
+        }
+    }
+
 }

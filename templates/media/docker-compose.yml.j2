@@ -33,6 +33,8 @@ services:
       - PUID=1000
       - PGID=1000
     volumes:
+      # - {{ nas_path }}/config/nzbget:/config
+      # - {{ nas_path }}/downloads:/downloads
       - type: volume
         source: config_nzbget
         target: /config
@@ -57,6 +59,9 @@ services:
       - PUID=1000
       - PGID=1000
     volumes:
+      # - {{ nas_path }}/config/sonarr:/config
+      # - {{ nas_path }}/downloads:/downloads
+      # - {{ nas_path }}/media/TV Shows:/tv
       - type: volume
         source: config_sonarr
         target: /config
@@ -86,6 +91,9 @@ services:
       - PUID=1000
       - PGID=1000
     volumes:
+      # - {{ nas_path }}/config/radarr:/config
+      # - {{ nas_path }}/downloads:/downloads
+      # - {{ nas_path }}/media/Movies:/movies
       - type: volume
         source: config_radarr
         target: /config
@@ -102,6 +110,58 @@ services:
         volume:
           nocopy: true
 
+  deluge:
+    container_name: deluge
+    image: linuxserver/deluge:latest
+    restart: always
+    network_mode: service:vpn # run on the vpn network
+    environment:
+      - PUID=1000 # default user id, for downloaded files access rights
+      - PGID=1000 # default group id, for downloaded files access rights
+      - TZ=America/New_York
+      - UMASK_SET=<022>
+    volumes:
+#      - /media/${USER}/data1/downloads/ongoing:/downloads # download folder
+#      - ${HOME}/.config/deluge:/config # config files
+      - type: volume
+        source: torrents
+        target: /torrents
+        volume:
+          nocopy: true
+      - type: volume
+        source: downloads
+        target: /downloads
+        volume:
+          nocopy: true
+      - type: volume
+        source: config_deluge
+        target: /config
+        volume:
+          nocopy: true
+
+  jackett:
+    container_name: jackett
+    image: linuxserver/jackett:latest
+    restart: always
+    networks:
+      - media
+    environment:
+      - PUID=1000 # default user id, for downloaded files access rights
+      - PGID=1000 # default group id, for downloaded files access rights
+      - TZ=America/New_York
+    volumes:
+#      - /etc/localtime:/etc/localtime:ro
+#      - /media/${USER}/data1/downloads/ongoing/torrent-blackhole:/downloads # place where to put .torrent files
+      - type: volume
+        source: torrent_blackhole
+        target: /downloads
+        volume:
+          nocopy: true
+      - type: volume
+        source: config_jackett
+        target: /config
+        volume:
+          nocopy: true
   nginx:
     # build: ./nginx-lets-encrypt
     image: nginx:stable
@@ -119,7 +179,9 @@ services:
     depends_on:
       - radarr
       - sonarr
+      - jackett
       - nzbget
+      - deluge
 
   plex:
     image: plexinc/pms-docker:plexpass
@@ -148,13 +210,15 @@ services:
       - ALLOWED_NETWORKS={{ media_host_subnet }}
     volumes:
       - ./transcode:/transcode
+      # - {{ nas_path }}/config/plex:/config
+      # - {{ nas_path }}/media:/data
       - type: volume
         source: config_plex
         target: /config
         volume:
           nocopy: true
       - type: volume
-        source: media_cifs
+        source: media
         target: /data
         volume:
           nocopy: true
@@ -172,6 +236,18 @@ volumes:
       type: nfs
       o: addr={{ nas_host }},nolock,soft,rw
       device: ":/volume1/config/radarr"
+  config_deluge:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr={{ nas_host }},nolock,soft,rw
+      device: ":/volume1/config/deluge"
+  config_jackett:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr={{ nas_host }},nolock,soft,rw
+      device: ":/volume1/config/jackett"
   config_nzbget:
     driver: local
     driver_opts:
@@ -184,12 +260,30 @@ volumes:
       type: nfs
       o: addr={{ nas_host }},nolock,soft,rw
       device: ":/volume1/config/plex"
+  torrents:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr={{ nas_host }},nolock,soft,rw
+      device: ":/volume1/downloads/ongoing"
+  torrent_blackhole:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr={{ nas_host }},nolock,soft,rw
+      device: ":/volume1/downloads/ongoing/torrent-blackhole"
   downloads:
     driver: local
     driver_opts:
       type: nfs
       o: addr={{ nas_host }},nolock,soft,rw
       device: ":/volume1/downloads"
+  media:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr={{ nas_host }},nolock,soft,rw
+      device: ":/volume1/Media"
   media_movies:
     driver: local
     driver_opts:
@@ -202,12 +296,12 @@ volumes:
       type: nfs
       o: addr={{ nas_host }},nolock,soft,rw
       device: ":/volume1/Media/TV Shows"
-  media_cifs:
-    driver: local
-    driver_opts:
-      type: cifs
-      o: vers=2.0,mfsymlinks,username={{ nas_user }},password={{ nas_password }}
-      device: "//{{ nas_host_ip }}/Media"
+  # media_cifs:
+  #   driver: local
+  #   driver_opts:
+  #     type: cifs
+  #     o: vers=2.0,mfsymlinks,uid=1000,gid=1000,file_mode=0777,dir_mode=0777,username={{ nas_user }},password={{ nas_password }}
+  #     device: "//{{ nas_host_ip }}/Media"
 
 networks:
   media:
