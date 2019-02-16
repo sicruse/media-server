@@ -10,34 +10,34 @@
 
   tasks:
 
-    - name: Create filesystem mount point
-      become: true
-      file:
-        path: '{{ nas_path }}'
-        state: directory
-        owner: root
-        group: wheel
-        mode: 0775
-
-    - name: Writing auto_nas
-      become: yes
-      template: >
-        src=templates/etc/auto_nas.j2
-        dest=/etc/auto_nas
-        mode=0644
-
-    - name: Add auto_nas entry to auto_master
-      become: yes
-      blockinfile:
-        dest: /etc/auto_master
-        create: True
-        marker: "# {mark} ANSIBLE MANAGED BLOCK"
-        block: |
-          {{ nas_path }}        auto_nas
-
-    - name: Mount NAS filesystem
-      become: true
-      command: automount -vc
+    # - name: Create filesystem mount point
+    #   become: true
+    #   file:
+    #     path: '{{ nas_path }}'
+    #     state: directory
+    #     owner: root
+    #     group: wheel
+    #     mode: 0775
+    #
+    # - name: Writing auto_nas
+    #   become: yes
+    #   template: >
+    #     src=templates/etc/auto_nas.j2
+    #     dest=/etc/auto_nas
+    #     mode=0644
+    #
+    # - name: Add auto_nas entry to auto_master
+    #   become: yes
+    #   blockinfile:
+    #     dest: /etc/auto_master
+    #     create: True
+    #     marker: "# {mark} ANSIBLE MANAGED BLOCK"
+    #     block: |
+    #       {{ nas_path }}        auto_nas
+    #
+    # - name: Mount NAS filesystem
+    #   become: true
+    #   command: automount -vc
 
     - name: Create media services docker directory
       become: true
