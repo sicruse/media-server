@@ -162,6 +162,22 @@ services:
         target: /config
         volume:
           nocopy: true
+
+  watchtower:
+    container_name: watchtower
+    image: containrrr/watchtower
+    restart: always
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - WATCHTOWER_NOTIFICATIONS=email
+      - WATCHTOWER_NOTIFICATION_EMAIL_FROM={{ email_notification_user }}
+      - WATCHTOWER_NOTIFICATION_EMAIL_TO={{ email_notification_recipient }}
+      - WATCHTOWER_NOTIFICATION_EMAIL_SERVER=smtp.gmail.com
+      - WATCHTOWER_NOTIFICATION_EMAIL_SERVER_USER={{ email_notification_user }}
+      - WATCHTOWER_NOTIFICATION_EMAIL_SERVER_PASSWORD={{ email_notification_password }}
+    command: --schedule "@weekly"
+
   nginx:
     # build: ./nginx-lets-encrypt
     image: nginx:stable
@@ -183,45 +199,45 @@ services:
       - nzbget
       - deluge
 
-  plex:
-    image: plexinc/pms-docker:plexpass
-    container_name: plex
-    restart: always
-    networks:
-      - media
-    ports:
-      - '32400:32400/tcp'
-      - '3005:3005/tcp'
-      - '8324:8324/tcp'
-      - '32469:32469/tcp'
-      - '1900:1900/udp'
-      - '32410:32410/udp'
-      - '32412:32412/udp'
-      - '32413:32413/udp'
-      - '32414:32414/udp'
-    hostname: plex
-    environment:
-      - TZ=America/New_York
-      - PUID=1000
-      - PGID=1000
-      - PLEX_CLAIM="{{ plex_claim_token }}"
-      - ADVERTISE_IP=http://{{ media_host_ip }}:32400/
-      - CHANGE_CONFIG_DIR_OWNERSHIP=false
-      - ALLOWED_NETWORKS={{ media_host_subnet }}
-    volumes:
-      - ./transcode:/transcode
-      # - {{ nas_path }}/config/plex:/config
-      # - {{ nas_path }}/media:/data
-      - type: volume
-        source: config_plex
-        target: /config
-        volume:
-          nocopy: true
-      - type: volume
-        source: media
-        target: /data
-        volume:
-          nocopy: true
+  # plex:
+  #   image: plexinc/pms-docker:plexpass
+  #   container_name: plex
+  #   restart: always
+  #   networks:
+  #     - media
+  #   ports:
+  #     - '32400:32400/tcp'
+  #     - '3005:3005/tcp'
+  #     - '8324:8324/tcp'
+  #     - '32469:32469/tcp'
+  #     - '1900:1900/udp'
+  #     - '32410:32410/udp'
+  #     - '32412:32412/udp'
+  #     - '32413:32413/udp'
+  #     - '32414:32414/udp'
+  #   hostname: plex
+  #   environment:
+  #     - TZ=America/New_York
+  #     - PUID=1000
+  #     - PGID=1000
+  #     - PLEX_CLAIM="{{ plex_claim_token }}"
+  #     - ADVERTISE_IP=http://{{ media_host_ip }}:32400/
+  #     - CHANGE_CONFIG_DIR_OWNERSHIP=false
+  #     - ALLOWED_NETWORKS={{ media_host_subnet }}
+  #   volumes:
+  #     - ./transcode:/transcode
+  #     # - {{ nas_path }}/config/plex:/config
+  #     # - {{ nas_path }}/media:/data
+  #     - type: volume
+  #       source: config_plex
+  #       target: /config
+  #       volume:
+  #         nocopy: true
+  #     - type: volume
+  #       source: media
+  #       target: /data
+  #       volume:
+  #         nocopy: true
 
 volumes:
   config_sonarr:
@@ -254,12 +270,12 @@ volumes:
       type: nfs
       o: addr={{ nas_host }},nolock,soft,rw
       device: ":/volume1/config/nzbget"
-  config_plex:
-    driver: local
-    driver_opts:
-      type: nfs
-      o: addr={{ nas_host }},nolock,soft,rw
-      device: ":/volume1/config/plex"
+  # config_plex:
+  #   driver: local
+  #   driver_opts:
+  #     type: nfs
+  #     o: addr={{ nas_host }},nolock,soft,rw
+  #     device: ":/volume1/config/plex"
   torrents:
     driver: local
     driver_opts:
