@@ -163,6 +163,20 @@ services:
         volume:
           nocopy: true
 
+  portainer:
+    container_name: portainer
+    image: portainer/portainer
+    command: -H unix:///var/run/docker.sock
+    restart: always
+    networks:
+      - media
+    ports:
+      - 9000:9000
+      - 8000:8000
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - config_portainer:/data
+
   watchtower:
     container_name: watchtower
     image: containrrr/watchtower
@@ -240,6 +254,12 @@ services:
   #         nocopy: true
 
 volumes:
+  config_portainer:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: addr=diskstation1.baltimore,nolock,soft,rw
+      device: ":/volume1/config/portainer"
   config_sonarr:
     driver: local
     driver_opts:
